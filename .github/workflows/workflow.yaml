@@ -1,4 +1,4 @@
-name: Publish Python Package
+name: Stochastic Model Package
 
 on:
   release:
