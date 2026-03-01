@@ -5,6 +5,109 @@ Summary: A stochastic model based on Black-Scholes, Heston and Merton theories f
 Author: Soli Gale
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: numpy
 Requires-Dist: scipy
 Requires-Dist: yfinance
+Dynamic: license-file
+
+# StochasticModel — Market data download, model calibration, and option pricing (Black-Scholes / Heston / Merton / Bates)
+
+`StochasticModel` is a small quantitative finance toolbox built around a single class, `StochasticModel()`, that helps you:
+- Fetch / load market data (option chains from Yahoo finance)
+- Choose the model type you want to work with
+- Calibrate model parameters to market quotes
+- Price vanilla options using Black–Scholes, Heston, or Merton (jump-diffusion)
+
+> This project is for research/education and internal tooling. It is **not** investment advice.
+
+## Install
+
+```bash
+pip install stochastic-model
+```
+
+## Quick usage
+Defining a Heston (stochastic volatility) model for Tesla options, fetching data and calibrating it to market prices:
+```bash
+from stochastic_model import StochasticModel
+
+model = StochasticModel(ticker="TSLA", model="heston")
+```
+The `ticker` can be any valid Yahoo Finance ticker with available option data.
+
+The `model` can take one of these three values:
+- "blach_scholes" to intiate a Black and Scholes model. It takes one parameter, _sigma_.
+- "heston" to intiate a Heston model with stochastic volatility, taking 5 parameters: _kappa, theta, sigma, rho_ and _v0_.
+- "bates" to intiate a Bates model, combination of Heston stochastic volatility with Merton's jump diffusion model. It takes eight parameters: _kappa, theta, sigma, rho, v0, lambda, mu_ and _delta_.
+
+```bash
+model.fetch_market_data(expiries=model.fetch_expiries()[:5],
+                        save_to_class=True, save_to_csv="option_data.csv",
+                        atm_threshold=0.10, min_open_interest=2000)
+
+r = 0.0372
+
+heston_calib = model.calibrate(model.data, r, x0=[0.3,0.13,3,-0.5,0.03],
+                            print_report=True, print_step=100, error_type="mse",
+                            bounds = [(0.1, 3), (0.001, 0.7), (0.001, 2), (-1, 1), (0.01, 0.3)])
+
+model.batch_price_option(model.data, r=r, params=heston_calib, return_column="Heston_predictions")
+
+model.data["Heston_predictions"]
+```
+
+## Methods:
+
+### `fetch_market_data(expiries=[], min_open_interest=100, atm_threshold=0.1, save_to_class=False, save_to_csv="")`
+Downloads option market data using `yfinance`. Input parameters are:
+- `expiries=[]` a list containing dates of expiries for which you want to download the data, e.g., "2026-03-20".
+- `min_open_interest=100` filter illiquid options, by only download ing options with a minimum number of  open trades.
+- atm_threshold=0.1
+- `save_to_class=False` whether to only return the data or also store it in the `StochasticModel` object under `data` property. If set to True, you can later access the download data through `StochasticModel.data`. 
+- `save_to_csv=""` address of a local csv file to save the downloaded data.
+
+### `fetch_expiries()`
+Returns a list containing expiry dates of the options available on `yfinance`. It takes no inputs.
+
+### `load_csv_data(file)`
+Loads option data from a csv file using `pandas.read_csv()`. Input parameters are:
+- `file=""` path to the csv file containing the data, e.g., "option_data.csv". It must contain these columns: "strike", "lastPrice", "impliedVolatility","side", "expiry", "T".
+
+### `def fetch_last_stock_price()`
+Loads the last price of the underlying stock or ETF. It prints out the price, returns it and also saves it under `StochasticModel.last_stock_price` for later being used for calibration and pricing purposes.
+
+### `price_option(option_side="Call", S0=None, K=None, T=None, r=None, params=None)`
+Prices a European vanilla option using the class's `.model` method. Input parameters are:
+- `option_side` a string that can be "Call" or "Put".
+- `S0` last price of the underlying.
+- `K` strike price.
+- `r` risk free rate.
+- `params` a list containing parameters of the chosen model type. Check the model's initialization function at the top of the page for more details.
+
+### `batch_price_option(data, r=None, params=None, return_column="")`
+Prices a batch of European vanilla option using the class's `.model` method. Input parameters are:
+- `data` a Pandas DataFrame containing the data of the options to price. It must contain these columns: "strike", "lastPrice", "impliedVolatility","side", "expiry", "T".
+- `r` risk free rate.
+- `params` a list containing parameters of the chosen model type. Check the model's initialization function at the top of the page for more details.
+- `return_column` if not empty, the prices will be added to the data DataFrame in a column under this name.
+
+### `quick_calibration(market_data, r, input_ranges, max_calls, error_type="mse", print_step=50, print_report=False)`
+Uses brute force to choose the combination of model parameters that minimize the error between model prediction and the provided data. It returns a list containing the optimum parameters. Optimum parameters will also be accessible through `object.best_params`. Input parameters are:
+- `market_data` a Pandas DataFrame containing the data of the options to price. It must contain these columns: "strike", "lastPrice", "impliedVolatility","side", "expiry", "T".
+- `r` risk free rate.
+- `input_ranges` a tuple or list containing ranges of inputs in the for of (min,max) tuples. Example for black_scholes: [(0.001,0.7)] for a range of values of sigma between 0.001 and 0.7.
+- `max_calls` maximum number of brute force iterations; number of steps between min and max ranges is decided based on this parameters.
+- `error_type` the error type to minimize; can be 'mea' (mean absolute error) or 'mse' (mean squared error).
+- `print_step` print the ongoing results every x iteration.
+- `print_report` a boolean to activate/deactivate printing the ongoing results.
+
+### `calibrate(market_data, r, x0, error_type="mse", print_step=50, print_report=False, bounds=[])`
+Uses scipy.optimize.minimize function to calibrate model parameters and minimize the error between model prediction and the provided data. It returns a list containing the optimum parameters. The method used for minimization is "L-BFGS-B". Check more details on scipy documentations. Optimum parameters will also be accessible through `object.best_params`. Input parameters are:
+- `market_data` a Pandas DataFrame containing the data of the options to price. It must contain these columns: "strike", "lastPrice", "impliedVolatility","side", "expiry", "T".
+- `r` risk free rate.
+- `x0` initial value for calibration.
+- `error_type` the error type to minimize; can be 'mea' (mean absolute error) or 'mse' (mean squared error).
+- `print_step` print the ongoing results every x iteration.
+- `print_report` a boolean to activate/deactivate printing the ongoing results.
+- `bounds` a list of tuples for specifying min and max bounds for each parameter. If empty, default bounds will be considered.
