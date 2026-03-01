@@ -63,9 +63,10 @@ class StochasticModel:
 
 
     def fetch_last_stock_price(self):
-        print(f"Fetching last underlying price of {self.ticker}")
         yf_ticker = yf.Ticker(self.ticker)
         self.last_stock_price = yf_ticker.fast_info["last_price"]
+        print(f"Last underlying price of {self.ticker} is {self.last_stock_price}")
+        return self.last_stock_price
 
 
 
@@ -230,7 +231,7 @@ class StochasticModel:
         print("=" * 70)
         print(" Lowest error reached: ", calib_results.fun)
         print(" Optimal parameters:   ", calib_results.x)
-        return calib_results
+        return calib_results.x
 
 
 
