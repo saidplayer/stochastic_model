@@ -1,6 +1,6 @@
 [project]
 name = "stochastic-model"
-version = "0.1.0"
+version = "1.0.0"
 description = "A stochastic model based on Black-Scholes, Heston and Merton theories for pricing options with internal capability of calibrating to market data."
 authors = [{name="Soli Gale"}]
 readme = "README.md"

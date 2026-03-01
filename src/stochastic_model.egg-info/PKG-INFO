@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: stochastic-model
-Version: 0.1.0
+Version: 1.0.0
 Summary: A stochastic model based on Black-Scholes, Heston and Merton theories for pricing options with internal capability of calibrating to market data.
 Author: Soli Gale
 Requires-Python: >=3.9
