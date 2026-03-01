@@ -45,9 +45,6 @@ model.data["Heston_predictions"]
 ```
 
 ## Methods:
-### `__init__(ticker="AAPL", model="black_scholes")`
-Downloads option market data using `yfinance`. Input parameters are:
-- `expiries=[]` a list containing dates of expiries for which you want to download the data, e.g., "2026-03-20".
 
 ### `fetch_market_data(expiries=[], min_open_interest=100, atm_threshold=0.1, save_to_class=False, save_to_csv="")`
 Downloads option market data using `yfinance`. Input parameters are:
